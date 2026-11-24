@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>지동현 이력서</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 20px 0; flex-wrap: wrap; }
+    .toolbar .hint { color: var(--muted); font-size: 0.85rem; }
+    .paper {
+      background: #fff; color: #1c1c1a; max-width: 794px; margin: 0 auto 56px;
+      padding: 56px 60px; border: 1px solid var(--line); border-radius: 6px;
+      box-shadow: 0 8px 30px rgba(0,0,0,.06);
+    }
+    .paper h1 { font-size: 2rem; margin: 0; letter-spacing: -0.02em; }
+    .paper .role { color: #2f6f4f; font-weight: 600; margin: 4px 0 10px; }
+    .paper .contact { font-size: 0.9rem; color: #555; }
+    .paper .contact a { color: #2f6f4f; }
+    .paper h2 { color: #2f6f4f; border-bottom: 2px solid #2f6f4f; padding-bottom: 4px; margin: 32px 0 14px; font-size: 0.85rem; }
+    .paper .item { margin-bottom: 14px; }
+    .paper .item-head { display: flex; justify-content: space-between; gap: 12px; font-weight: 700; flex-wrap: wrap; }
+    .paper .item-head span { font-weight: 400; color: #666; font-family: var(--mono); font-size: 0.85rem; }
+    .paper ul { margin: 6px 0 0; padding-left: 18px; font-size: 0.95rem; }
+    .paper li { margin-bottom: 4px; }
+    .paper .skills { display: grid; grid-template-columns: 110px 1fr; gap: 6px 16px; font-size: 0.95rem; }
+    .paper .skills b { color: #333; }
+    @media (max-width: 640px) { .paper { padding: 32px 22px; } .paper .skills { grid-template-columns: 1fr; } }
+    @media print {
+      @page { size: A4; margin: 14mm; }
+      body { background: #fff; }
+      .toolbar, nav, footer { display: none !important; }
+      .paper { border: none; box-shadow: none; padding: 0; margin: 0; max-width: none; }
+      .paper a { text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap toolbar">
+    <a href="index.html">← 포트폴리오로</a>
+    <span class="hint">버튼을 누른 뒤 대상에서 “PDF로 저장”을 고르면 PDF로 내려받을 수 있습니다.</span>
+    <button class="btn primary" onclick="window.print()">PDF로 다운로드</button>
+  </div>
+
+  <article class="paper">
+    <h1>지동현</h1>
+    <p class="role">웹 개발 지망 · 사용자 화면(UI)과 AI 데이터 구축 경험</p>
+    <p class="contact">
+      GitHub <a href="https://github.com/pureredfnql">github.com/pureredfnql</a> ·
+      Portfolio <a href="https://pureredfnql.github.io/">pureredfnql.github.io</a>
+    </p>
+
+    <h2>PROFILE</h2>
+    <p>로봇을 모르는 사람도 설명 없이 쓸 수 있는 화면을 만드는 데 관심이 있습니다. 책상 정리 로봇팔 프로젝트에서 휴대폰으로 로봇을 조작하는 웹 화면을 만들고, 물건 인식 AI의 학습 데이터를 라벨링했습니다.</p>
+
+    <h2>PROJECT</h2>
+    <div class="item">
+      <div class="item-head">책상 정리 로봇팔 (팀 프로젝트, 인턴) <span>2026.09 – 2026.11</span></div>
+      <ul>
+        <li>카메라로 책상 위 물건을 인식(YOLO)하고, 모방학습(ACT) 로봇팔(SO-101)이 종류별 수거함에 넣는 시스템</li>
+        <li><b>웹 UI</b>: 실시간 카메라 화면, 상태 안내 문구, 진행 막대, 알림, 6개 조작 버튼(정리 시작·일시정지·계속·중지·비상정지·물건 놓기)을 상태 규칙에 맞춰 구현. FastAPI REST API와 연동</li>
+        <li>가짜 로봇(FakeCleaner)으로 개발한 뒤 같은 API로 실제 로봇에 연결해 기본 조작과 휴대폰 접속까지 동작 확인</li>
+        <li><b>데이터 라벨링</b>: Roboflow에서 바운딩박스 라벨링, 클래스 7종 → 10종 확장 과정에 참여, 팀 라벨링 기준 준수</li>
+        <li>코드: github.com/todtras/desk-cleanup-robot</li>
+      </ul>
+    </div>
+
+    <h2>SKILLS</h2>
+    <div class="skills">
+      <b>Web</b><span>HTML, CSS, JavaScript, REST API 연동, 반응형 화면</span>
+      <b>Backend</b><span>FastAPI (기초)</span>
+      <b>AI 데이터</b><span>Roboflow 라벨링, YOLO 데이터셋 구조 이해</span>
+      <b>Tools</b><span>Git, GitHub, GitHub Pages</span>
+    </div>
+
+    <h2>STUDY</h2>
+    <ul>
+      <li>알고리즘 문제 풀이: BFS, 백트래킹, 동적 계획법, 해시, 정렬, 그리디, 재귀, 시뮬레이션</li>
+    </ul>
+  </article>
+</body>
+</html>

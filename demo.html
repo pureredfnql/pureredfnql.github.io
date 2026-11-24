@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>책상 정리 로봇 · 조작 화면 데모</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .demo-bar { background: var(--accent-soft); color: var(--accent); font-size: 0.88rem; padding: 10px 0; }
+    .demo-bar .wrap { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .app { padding: 28px 0 56px; }
+    .app-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .app-head h1 { font-size: 1.4rem; margin: 0; }
+    .conn { font-size: 0.88rem; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+    .conn::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #38a169; }
+    .cams { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .cam { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+    .cam .label { font-size: 0.8rem; color: var(--muted); padding: 6px 10px; border-bottom: 1px solid var(--line); }
+    .cam svg { display: block; width: 100%; height: auto; }
+    .status { margin: 20px 0 12px; display: flex; align-items: center; gap: 12px; font-size: 1.2rem; font-weight: 600; }
+    .dot { width: 14px; height: 14px; border-radius: 50%; flex: none; background: #a0a0a0; transition: background .2s; }
+    .dot.cleaning { background: #38a169; } .dot.paused { background: #d69e2e; } .dot.estop { background: var(--danger); } .dot.done { background: var(--accent); }
+    .bar { height: 10px; background: var(--line); border-radius: 999px; overflow: hidden; }
+    .bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .4s; }
+    .counts { font-size: 0.9rem; color: var(--muted); margin: 6px 0 18px; }
+    .controls { display: flex; flex-wrap: wrap; gap: 8px; }
+    .controls button {
+      font: inherit; font-weight: 600; padding: 12px 18px; border-radius: 10px; cursor: pointer;
+      border: 1px solid var(--line); background: var(--surface); color: var(--text);
+    }
+    .controls button:disabled { opacity: .35; cursor: not-allowed; }
+    .controls button.go { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+    .controls button.danger { background: var(--danger); color: #fff; border-color: var(--danger); margin-left: auto; }
+    .log { margin-top: 24px; }
+    .log h2 { margin-bottom: 8px; }
+    .log ul { list-style: none; padding: 0; margin: 0; font-size: 0.92rem; }
+    .log li { padding: 8px 0; border-bottom: 1px solid var(--line); }
+    .log li.warn { color: var(--warn); font-weight: 600; }
+    .log time { font-family: var(--mono); color: var(--muted); margin-right: 10px; font-size: 0.85rem; }
+    .rules { margin-top: 32px; font-size: 0.85rem; overflow-x: auto; }
+    .rules table { border-collapse: collapse; width: 100%; min-width: 560px; }
+    .rules th, .rules td { border: 1px solid var(--line); padding: 6px 8px; text-align: center; }
+    .rules th { background: var(--surface); }
+    .rules tr.on td { background: var(--accent-soft); }
+    @media (max-width: 640px) {
+      .cams { grid-template-columns: 1fr; }
+      .controls button { flex: 1 1 40%; }
+      .controls button.danger { margin-left: 0; flex-basis: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="demo-bar">
+    <div class="wrap">
+      <span>이 화면은 실제 로봇 없이 브라우저에서 돌아가는 <b>시뮬레이션 데모</b>입니다. 버튼을 눌러 보세요.</span>
+      <a href="index.html">← 포트폴리오로</a>
+    </div>
+  </div>
+
+  <div class="wrap app">
+    <div class="app-head">
+      <h1>책상 정리 로봇</h1>
+      <span class="conn">연결됨</span>
+    </div>
+
+    <div class="cams">
+      <div class="cam">
+        <div class="label">책상 전체 (실시간)</div>
+        <svg id="desk" viewBox="0 0 320 200" role="img" aria-label="책상 위 물건과 인식 결과"></svg>
+      </div>
+      <div class="cam">
+        <div class="label">로봇 손 (실시간)</div>
+        <svg id="hand" viewBox="0 0 320 200" role="img" aria-label="로봇 손 카메라"></svg>
+      </div>
+    </div>
+
+    <div class="status"><span class="dot" id="dot"></span><span id="message">대기 중이에요</span></div>
+    <div class="bar"><i id="barfill"></i></div>
+    <div class="counts" id="counts">정리 0 · 실패 0 · 남음 5</div>
+
+    <div class="controls">
+      <button id="start" class="go">정리 시작</button>
+      <button id="pause">일시정지</button>
+      <button id="resume">계속</button>
+      <button id="stop">중지</button>
+      <button id="release">물건 놓기</button>
+      <button id="estop" class="danger">비상정지</button>
+    </div>
+
+    <div class="log">
+      <h2>알림</h2>
+      <ul id="log"></ul>
+    </div>
+
+    <div class="rules">
+      <h2>상태별 버튼 규칙 (현재 상태가 강조됩니다)</h2>
+      <table>
+        <thead><tr><th>상태</th><th>정리 시작</th><th>일시정지</th><th>계속</th><th>중지</th><th>비상정지</th><th>물건 놓기</th></tr></thead>
+        <tbody id="rules"></tbody>
+      </table>
+    </div>
+  </div>
+
+<script>
+const OBJECTS = [
+  { id: "pen", name: "펜", bin: "필기구", x: 60, y: 120, w: 70, h: 14, color: "#2b6cb0" },
+  { id: "eraser", name: "지우개", bin: "필기구", x: 160, y: 60, w: 36, h: 22, color: "#e2e8f0" },
+  { id: "tape", name: "테이프", bin: "사무용품", x: 230, y: 120, w: 40, h: 40, color: "#d69e2e", round: true },
+  { id: "bottle", name: "물병", bin: "쓰레기", x: 110, y: 40, w: 26, h: 56, color: "#90cdf4" },
+  { id: "paper", name: "종이", bin: "쓰레기", x: 190, y: 150, w: 38, h: 30, color: "#f7fafc" },
+];
+const STATES = {
+  idle:     { label: "대기",     on: ["start", "estop"] },
+  cleaning: { label: "정리 중",  on: ["pause", "stop", "estop"] },
+  paused:   { label: "일시정지", on: ["resume", "stop", "estop"] },
+  done:     { label: "정리 끝",  on: ["start", "estop"] },
+  estop:    { label: "비상정지", on: ["start", "release"] },
+};
+const BTN = ["start", "pause", "resume", "stop", "estop", "release"];
+const $ = (id) => document.getElementById(id);
+
+let st, timer = null, queue = [], holding = null;
+function reset() {
+  st = { state: "idle", done: 0, failed: 0, left: OBJECTS.map(o => o.id), current: null };
+}
+reset();
+
+function now() { return new Date().toTimeString().slice(0, 5); }
+function notify(text, warn = false) {
+  const li = document.createElement("li");
+  if (warn) li.className = "warn";
+  li.innerHTML = `<time>${now()}</time>${text}`;
+  $("log").prepend(li);
+  while ($("log").children.length > 8) $("log").lastChild.remove();
+}
+function say(msg) { $("message").textContent = msg; }
+
+function drawDesk() {
+  const svg = $("desk");
+  let s = `<rect width="320" height="200" fill="#8b6f4e"/><rect x="6" y="6" width="308" height="188" fill="#a1825e" rx="4"/>`;
+  for (const o of OBJECTS) {
+    if (!st.left.includes(o.id)) continue;
+    s += o.round
+      ? `<circle cx="${o.x + o.w/2}" cy="${o.y + o.h/2}" r="${o.w/2}" fill="${o.color}"/><circle cx="${o.x + o.w/2}" cy="${o.y + o.h/2}" r="${o.w/5}" fill="#a1825e"/>`
+      : `<rect x="${o.x}" y="${o.y}" width="${o.w}" height="${o.h}" rx="3" fill="${o.color}"/>`;
+    if (st.state !== "idle") {
+      const hl = st.current === o.id;
+      s += `<rect x="${o.x-4}" y="${o.y-4}" width="${o.w+8}" height="${o.h+8}" fill="none" stroke="${hl ? '#f6e05e' : '#48bb78'}" stroke-width="${hl ? 3 : 2}"/>`;
+      s += `<text x="${o.x-4}" y="${o.y-8}" font-size="11" fill="#fff" font-family="sans-serif" font-weight="700">${o.name} ${(0.8 + (o.x % 17) / 100).toFixed(2)}</text>`;
+    }
+  }
+  svg.innerHTML = s;
+}
+function drawHand() {
+  const o = OBJECTS.find(o => o.id === (holding || st.current));
+  let s = `<rect width="320" height="200" fill="#4a3b2a"/>`;
+  s += `<path d="M110 0 L130 90 L150 90 L150 0Z M210 0 L190 90 L170 90 L170 0Z" fill="#cbd5e0" opacity=".85"/>`;
+  if (o) s += `<rect x="${160 - o.w}" y="${holding ? 92 : 130}" width="${o.w * 2}" height="${Math.min(o.h * 2, 60)}" rx="6" fill="${o.color}"/>`;
+  else s += `<text x="160" y="150" text-anchor="middle" font-size="12" fill="#cbd5e0" font-family="sans-serif">비어 있음</text>`;
+  $("hand").innerHTML = s;
+}
+
+function render() {
+  const S = STATES[st.state];
+  for (const b of BTN) $(b).disabled = !S.on.includes(b);
+  $("resume").hidden = st.state !== "paused";
+  $("pause").hidden = st.state === "paused";
+  $("release").hidden = st.state !== "estop";
+  $("dot").className = "dot " + st.state;
+  const total = OBJECTS.length;
+  $("barfill").style.width = ((st.done + st.failed) / total * 100) + "%";
+  $("counts").textContent = `정리 ${st.done} · 실패 ${st.failed} · 남음 ${st.left.length}`;
+  $("rules").innerHTML = Object.entries(STATES).map(([k, v]) =>
+    `<tr class="${k === st.state ? 'on' : ''}"><td><b>${v.label}</b> <code>${k}</code></td>${BTN.map(b => `<td>${v.on.includes(b) ? '✅' : ''}</td>`).join("")}</tr>`
+  ).join("");
+  drawDesk(); drawHand();
+}
+
+// 정리 과정: 한 물건마다 [찾기 → 집기 → 옮기기 → 돌아오기]
+function buildQueue() {
+  queue = [];
+  queue.push(() => say("책상을 살펴보는 중이에요"));
+  for (const id of st.left) {
+    const o = OBJECTS.find(x => x.id === id);
+    const fail = id === "paper"; // 데모: 종이는 한 번 놓치는 상황
+    queue.push(() => { st.current = id; say(`${o.name}을(를) 찾았어요`); });
+    queue.push(() => say(`${o.name} 집는 중 (1번째)`));
+    if (fail) {
+      queue.push(() => { say(`${o.name} 집는 중 (2번째)`); });
+      queue.push(() => {
+        st.left = st.left.filter(x => x !== id); st.failed++; st.current = null;
+        notify(`${o.name}를 집지 못해 건너뛰었어요. 직접 정리해 주세요`, true);
+        say("다음 물건을 찾는 중이에요");
+      });
+      continue;
+    }
+    queue.push(() => { holding = id; st.left = st.left.filter(x => x !== id); say(`${o.name}을(를) ${o.bin} 수거함으로 옮기는 중이에요`); });
+    queue.push(() => { holding = null; st.done++; st.current = null; say("처음 자세로 돌아가는 중"); });
+  }
+  queue.push(() => {
+    st.state = "done";
+    say(`정리 끝! ${st.done}개 정리, ${st.failed}개 실패`);
+    notify(`정리 끝! ${st.done}개 정리, ${st.failed}개 실패`);
+  });
+}
+function tick() {
+  if (st.state !== "cleaning") return;
+  const step = queue.shift();
+  if (step) step();
+  render();
+  if (queue.length && st.state === "cleaning") timer = setTimeout(tick, 1100);
+}
+function stopTimer() { clearTimeout(timer); timer = null; }
+
+$("start").onclick = () => {
+  if (st.state === "done" || st.left.length === 0) reset();
+  st.state = "cleaning"; st.current = null;
+  notify("정리를 시작했어요");
+  buildQueue(); render(); stopTimer(); timer = setTimeout(tick, 400);
+};
+$("pause").onclick = () => {
+  stopTimer(); st.state = "paused";
+  say("일시정지 — 계속하려면 '계속'을 누르세요"); notify("일시정지했어요"); render();
+};
+$("resume").onclick = () => {
+  st.state = "cleaning"; notify("다시 정리할게요"); render(); timer = setTimeout(tick, 400);
+};
+$("stop").onclick = () => {
+  stopTimer();
+  if (holding) { st.left.push(holding); holding = null; }
+  st.state = "idle"; st.current = null;
+  say("중지했어요. 처음 자세로 돌아왔어요"); notify("중지했어요"); render();
+};
+$("estop").onclick = () => {
+  stopTimer(); st.state = "estop";
+  say("비상정지! 로봇이 그 자세로 멈췄어요. 주변을 확인한 뒤 다시 시작하세요");
+  notify("비상정지가 눌렸어요", true); render();
+};
+$("release").onclick = () => {
+  if (!holding) { say("손에 든 물건이 없어요"); return; }
+  if (!confirm("물건이 그 자리에서 떨어져요. 아래가 비어 있나요?")) return;
+  st.left.push(holding); holding = null;
+  say("물건을 놓았어요. 주변을 확인한 뒤 다시 시작하세요"); notify("물건을 놓았어요"); render();
+};
+
+render();
+</script>
+</body>
+</html>
